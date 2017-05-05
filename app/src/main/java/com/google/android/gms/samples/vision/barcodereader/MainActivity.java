@@ -19,8 +19,14 @@ package com.google.android.gms.samples.vision.barcodereader;
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
+import android.text.Html;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
@@ -31,47 +37,59 @@ import com.google.android.gms.vision.barcode.Barcode;
  * Main activity demonstrating how to pass extra parameters to an activity that
  * reads barcodes.
  */
-public class MainActivity extends Activity implements View.OnClickListener {
+public class MainActivity extends Activity {
 
     // use a compound button so either checkbox or switch widgets work.
-    private CompoundButton autoFocus;
-    private CompoundButton useFlash;
-    private TextView statusMessage;
-    private TextView barcodeValue;
+    private WebView survey;
 
     private static final int RC_BARCODE_CAPTURE = 9001;
     private static final String TAG = "BarcodeMain";
+
+    @JavascriptInterface
+    public void processHTML(String html) {
+        if (html == null)
+            return;
+        if (html.charAt(84) == '{') {
+            // get json data with User ID
+            
+            // save User ID to sharedPreferences
+
+            // close survey and open camera
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ViewGroup parent = (ViewGroup) survey.getParent();
+                    if (parent != null) {
+                        parent.removeView(survey);
+                        Intent intent = new Intent(MainActivity.this, BarcodeCaptureActivity.class);
+                        intent.putExtra(BarcodeCaptureActivity.AutoFocus, true);
+                        intent.putExtra(BarcodeCaptureActivity.UseFlash, false);
+                        startActivityForResult(intent, RC_BARCODE_CAPTURE);
+                    }
+                }
+            });
+
+        }
+        Log.d(TAG, html);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        statusMessage = (TextView)findViewById(R.id.status_message);
-        barcodeValue = (TextView)findViewById(R.id.barcode_value);
-
-        autoFocus = (CompoundButton) findViewById(R.id.auto_focus);
-        useFlash = (CompoundButton) findViewById(R.id.use_flash);
-
-        findViewById(R.id.read_barcode).setOnClickListener(this);
-    }
-
-    /**
-     * Called when a view has been clicked.
-     *
-     * @param v The view that was clicked.
-     */
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.read_barcode) {
-            // launch barcode activity.
-            Intent intent = new Intent(this, BarcodeCaptureActivity.class);
-            intent.putExtra(BarcodeCaptureActivity.AutoFocus, autoFocus.isChecked());
-            intent.putExtra(BarcodeCaptureActivity.UseFlash, useFlash.isChecked());
-
-            startActivityForResult(intent, RC_BARCODE_CAPTURE);
+        survey = (WebView) findViewById(R.id.survey);
+        if(survey != null) {
+            survey.getSettings().setJavaScriptEnabled(true);
+            survey.addJavascriptInterface(this, "HTMLOUT");
+            survey.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    survey.loadUrl("javascript:window.HTMLOUT.processHTML('<html>'+document.getElementsByTagName('html')[0].innerHTML+'</html>');");
+                }
+            });
+            survey.loadUrl("http://ec2-54-71-11-216.us-west-2.compute.amazonaws.com/survey");
         }
-
     }
 
     /**
@@ -102,16 +120,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (resultCode == CommonStatusCodes.SUCCESS) {
                 if (data != null) {
                     Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
-                    statusMessage.setText(R.string.barcode_success);
-                    barcodeValue.setText(barcode.displayValue);
                     Log.d(TAG, "Barcode read: " + barcode.displayValue);
                 } else {
-                    statusMessage.setText(R.string.barcode_failure);
                     Log.d(TAG, "No barcode captured, intent data is null");
                 }
-            } else {
-                statusMessage.setText(String.format(getString(R.string.barcode_error),
-                        CommonStatusCodes.getStatusCodeString(resultCode)));
             }
         }
         else {
