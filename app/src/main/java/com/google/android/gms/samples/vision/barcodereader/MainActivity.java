@@ -17,8 +17,10 @@
 package com.google.android.gms.samples.vision.barcodereader;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Activity;
+import android.preference.PreferenceManager;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -32,6 +34,9 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Main activity demonstrating how to pass extra parameters to an activity that
@@ -51,7 +56,18 @@ public class MainActivity extends Activity {
             return;
         if (html.charAt(84) == '{') {
             // get json data with User ID
-            
+            String jsonString = html.substring(84);
+            try {
+                JSONObject jsonObject = new JSONObject(jsonString);
+                int userId = jsonObject.getInt("UserID");
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putInt("UserID", userId);
+                editor.apply();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
             // save User ID to sharedPreferences
 
             // close survey and open camera
@@ -79,7 +95,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         survey = (WebView) findViewById(R.id.survey);
-        if(survey != null) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if(survey != null && !preferences.contains("UserID")) {
             survey.getSettings().setJavaScriptEnabled(true);
             survey.addJavascriptInterface(this, "HTMLOUT");
             survey.setWebViewClient(new WebViewClient() {
@@ -89,6 +106,11 @@ public class MainActivity extends Activity {
                 }
             });
             survey.loadUrl("http://ec2-54-71-11-216.us-west-2.compute.amazonaws.com/survey");
+        } else {
+            Intent intent = new Intent(MainActivity.this, BarcodeCaptureActivity.class);
+            intent.putExtra(BarcodeCaptureActivity.AutoFocus, true);
+            intent.putExtra(BarcodeCaptureActivity.UseFlash, false);
+            startActivityForResult(intent, RC_BARCODE_CAPTURE);
         }
     }
 
