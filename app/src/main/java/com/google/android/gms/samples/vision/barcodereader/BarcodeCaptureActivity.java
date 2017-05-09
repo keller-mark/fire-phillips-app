@@ -25,7 +25,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -37,8 +40,21 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Cache;
+import com.android.volley.Network;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.BasicNetwork;
+import com.android.volley.toolbox.DiskBasedCache;
+import com.android.volley.toolbox.HurlStack;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.CommonStatusCodes;
@@ -50,7 +66,12 @@ import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.io.InputStream;
+
 
 /**
  * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
@@ -362,10 +383,87 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             Intent data = new Intent();
             data.putExtra(BarcodeObject, best);
             setResult(CommonStatusCodes.SUCCESS, data);
-            finish();
+            loadArtSwipe(best);
             return true;
         }
         return false;
+    }
+
+    private void loadArtSwipe (Barcode barcode) {
+        FrameLayout element = (FrameLayout) findViewById(R.id.viewArtInterface);
+        element.setVisibility(View.VISIBLE);
+        String artworkId = barcode.displayValue;
+        TextView textBox = (TextView) findViewById(R.id.textView3);
+        textBox.setText(artworkId);
+
+        RequestQueue mRequestQueue;
+
+// Instantiate the cache
+        Cache cache = new DiskBasedCache(getCacheDir(), 1024 * 1024); // 1MB cap
+
+// Set up the network to use HttpURLConnection as the HTTP client.
+        Network network = new BasicNetwork(new HurlStack());
+
+// Instantiate the RequestQueue with the cache and network.
+        mRequestQueue = new RequestQueue(cache, network);
+
+// Start the queue
+        mRequestQueue.start();
+
+        final String[] artworkUrlTag = {""};
+
+        String url = "http://Ec2-54-71-11-216.us-west-2.compute.amazonaws.com/work/" + artworkId;
+        JsonObjectRequest jsObjRequest = new JsonObjectRequest
+                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.d("phillips", "Response: " + response.toString());
+                        try {
+                            artworkUrlTag[0] = response.getString("PhillipsID");
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        // show The Image in a ImageView
+                        new DownloadImageTask((ImageView) findViewById(R.id.imageView))
+                                .execute("http://www.phillipscollection.org/willo/w/size3/" + artworkUrlTag[0] + "w.jpg");
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO Auto-generated method stub
+
+                    }
+                });
+
+        // Add the request to the RequestQueue.
+        mRequestQueue.add(jsObjRequest);
+    }
+
+    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+        ImageView bmImage;
+
+        public DownloadImageTask(ImageView bmImage) {
+            this.bmImage = bmImage;
+        }
+
+        protected Bitmap doInBackground(String... urls) {
+            String urldisplay = urls[0];
+            Bitmap mIcon11 = null;
+            try {
+                InputStream in = new java.net.URL(urldisplay).openStream();
+                mIcon11 = BitmapFactory.decodeStream(in);
+            } catch (Exception e) {
+                Log.e("Error", e.getMessage());
+                e.printStackTrace();
+            }
+            return mIcon11;
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            bmImage.setImageBitmap(result);
+        }
     }
 
     private class CaptureGestureListener extends GestureDetector.SimpleOnGestureListener {

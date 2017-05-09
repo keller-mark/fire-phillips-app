@@ -2,11 +2,79 @@
 
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/topLayout"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:keepScreenOn="true">
+
+  <FrameLayout
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:visibility="gone"
+      android:id="@+id/viewArtInterface"
+      android:background="@android:color/transparent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:background="@android:color/transparent">
+
+      <Button
+          android:id="@+id/button2"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:layout_weight="1"
+          android:minWidth="0dp"
+          android:text="" />
+
+      <LinearLayout
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="vertical"
+          android:layout_weight="15.00"
+          android:background="@android:color/transparent">
+
+      <TextView
+          android:id="@+id/textView2"
+          android:layout_width="match_parent"
+          android:layout_height="30dp"
+          android:text=""
+          android:layout_weight="1"/>
+
+
+      <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="10"
+            android:scaleType="fitCenter"/>
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:text="TextView"
+            android:layout_weight="4"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:background="#939393"
+            android:textColor="#000000"/>
+
+      </LinearLayout>
+
+      <Button
+          android:id="@+id/button5"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:layout_weight="1"
+          android:minWidth="0dp"
+          android:text="" />
+    </LinearLayout>
+  </FrameLayout>
 
   <com.google.android.gms.samples.vision.barcodereader.ui.camera.CameraSourcePreview
       android:id="@+id/preview"
