@@ -24,7 +24,9 @@
         android:background="@android:color/transparent">
 
       <Button
-          android:id="@+id/button2"
+          android:id="@+id/leftButton"
+          android:onClick="dislikeWork"
+          android:background="#FF4136"
           android:layout_width="wrap_content"
           android:layout_height="match_parent"
           android:layout_weight="1"
@@ -67,7 +69,9 @@
       </LinearLayout>
 
       <Button
-          android:id="@+id/button5"
+          android:id="@+id/rightButton"
+          android:onClick="likeWork"
+          android:background="#2ECC40"
           android:layout_width="wrap_content"
           android:layout_height="match_parent"
           android:layout_weight="1"

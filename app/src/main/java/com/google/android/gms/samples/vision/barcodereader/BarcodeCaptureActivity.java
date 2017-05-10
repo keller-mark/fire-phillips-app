@@ -24,6 +24,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -31,6 +32,7 @@ import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -55,12 +57,12 @@ import com.android.volley.toolbox.BasicNetwork;
 import com.android.volley.toolbox.DiskBasedCache;
 import com.android.volley.toolbox.HurlStack;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.CameraSource;
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.CameraSourcePreview;
-
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -71,6 +73,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -99,6 +103,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     // helper objects for detecting taps and pinches.
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
+    private Work artwork;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -130,7 +135,71 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
                 Snackbar.LENGTH_LONG)
                 .show();
+
+
+
     }
+
+    private void likeWork(View view) {
+       rateWork(true);
+    }
+    private void dislikeWork(View view) {
+        rateWork(false);
+    }
+
+    private void rateWork(boolean liked) {
+        RequestQueue mRequestQueue;
+
+        // Instantiate the cache
+        Cache cache = new DiskBasedCache(getCacheDir(), 1024 * 1024); // 1MB cap
+
+        // Set up the network to use HttpURLConnection as the HTTP client.
+        Network network = new BasicNetwork(new HurlStack());
+
+        // Instantiate the RequestQueue with the cache and network.
+        mRequestQueue = new RequestQueue(cache, network);
+
+        // Start the queue
+        mRequestQueue.start();
+
+        String url = "http://myphillipscollection.me/work/preference";
+
+        StringRequest postRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>()
+                {
+                    @Override
+                    public void onResponse(String response) {
+                        // response
+                        Log.d("Response", response);
+                    }
+                },
+                new Response.ErrorListener()
+                {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // error
+                        Log.d("Error.Response", error.toString());
+                    }
+                }
+        ) {
+            @Override
+            protected Map<String, String> getParams()
+            {
+                Map<String, String>  params = new HashMap<String, String>();
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(BarcodeCaptureActivity.this);
+                int userId = preferences.getInt("UserID", 0);
+                if(userId != 0 && artwork.getId() != 0) {
+                    params.put("work_id", "" + artwork.getId());
+                    params.put("user_id", "" + userId);
+                    params.put("liked", (true ? "1" : "2"));
+                }
+
+                return params;
+            }
+        };
+        mRequestQueue.add(postRequest);
+    }
+
 
     /**
      * Handles the requesting of the camera permission.  This includes
@@ -392,7 +461,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private void loadArtSwipe (Barcode barcode) {
         FrameLayout element = (FrameLayout) findViewById(R.id.viewArtInterface);
         element.setVisibility(View.VISIBLE);
-        String artworkId = barcode.displayValue;
+        final String artworkId = barcode.displayValue;
         TextView textBox = (TextView) findViewById(R.id.textView3);
         textBox.setText(artworkId);
 
@@ -410,7 +479,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 // Start the queue
         mRequestQueue.start();
 
-        final String[] artworkUrlTag = {""};
+
 
         String url = "http://Ec2-54-71-11-216.us-west-2.compute.amazonaws.com/work/" + artworkId;
         JsonObjectRequest jsObjRequest = new JsonObjectRequest
@@ -420,13 +489,28 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                     public void onResponse(JSONObject response) {
                         Log.d("phillips", "Response: " + response.toString());
                         try {
-                            artworkUrlTag[0] = response.getString("PhillipsID");
+                            artwork.setId(response.getInt("ID"));
+                            artwork.setPhillipsID(response.getString("PhillipsID"));
+                            artwork.setTitle(response.getString("Title"));
+                            artwork.setMaker(response.getString("Maker"));
+                            artwork.setDateMade(response.getString("DateMade"));
+                            artwork.setCulture(response.getString("Culture"));
+                            artwork.setMaterials(response.getString("Materials"));
+                            artwork.setCreditLine(response.getString("CreditLine"));
+                            artwork.setItemName(response.getString("ItemName"));
+                            artwork.setMovement(response.getString("Movement"));
+                            artwork.setCentury(response.getString("Century"));
+                            artwork.setLifespan(response.getString("Lifespan"));
+                            artwork.setContinent(response.getString("Continent"));
+                            artwork.setGender(response.getString("Gender"));
+                            artwork.setYear(response.getString("Year"));
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                         // show The Image in a ImageView
                         new DownloadImageTask((ImageView) findViewById(R.id.imageView))
-                                .execute("http://www.phillipscollection.org/willo/w/size3/" + artworkUrlTag[0] + "w.jpg");
+                                .execute("http://www.phillipscollection.org/willo/w/size3/" + artwork.getPhillipsID() + "w.jpg");
                     }
                 }, new Response.ErrorListener() {
 
