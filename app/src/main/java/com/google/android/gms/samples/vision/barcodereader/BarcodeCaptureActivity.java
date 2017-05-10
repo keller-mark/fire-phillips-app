@@ -104,6 +104,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
     private Work artwork;
+    TextView textBox;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -136,18 +137,19 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                 Snackbar.LENGTH_LONG)
                 .show();
 
-
+        artwork = new Work();
+        textBox = (TextView) findViewById(R.id.textView3);
 
     }
 
-    private void likeWork(View view) {
+    public void likeWork(View view) {
        rateWork(true);
     }
-    private void dislikeWork(View view) {
+    public void dislikeWork(View view) {
         rateWork(false);
     }
 
-    private void rateWork(boolean liked) {
+    private void rateWork(final boolean liked) {
         RequestQueue mRequestQueue;
 
         // Instantiate the cache
@@ -186,12 +188,12 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             protected Map<String, String> getParams()
             {
                 Map<String, String>  params = new HashMap<String, String>();
-                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(BarcodeCaptureActivity.this);
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(BarcodeCaptureActivity.this.getApplicationContext());
                 int userId = preferences.getInt("UserID", 0);
                 if(userId != 0 && artwork.getId() != 0) {
                     params.put("work_id", "" + artwork.getId());
                     params.put("user_id", "" + userId);
-                    params.put("liked", (true ? "1" : "2"));
+                    params.put("liked", (liked ? "1" : "2"));
                 }
 
                 return params;
@@ -462,21 +464,21 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         FrameLayout element = (FrameLayout) findViewById(R.id.viewArtInterface);
         element.setVisibility(View.VISIBLE);
         final String artworkId = barcode.displayValue;
-        TextView textBox = (TextView) findViewById(R.id.textView3);
-        textBox.setText(artworkId);
+
+
 
         RequestQueue mRequestQueue;
 
-// Instantiate the cache
+        // Instantiate the cache
         Cache cache = new DiskBasedCache(getCacheDir(), 1024 * 1024); // 1MB cap
 
-// Set up the network to use HttpURLConnection as the HTTP client.
+        // Set up the network to use HttpURLConnection as the HTTP client.
         Network network = new BasicNetwork(new HurlStack());
 
-// Instantiate the RequestQueue with the cache and network.
+        // Instantiate the RequestQueue with the cache and network.
         mRequestQueue = new RequestQueue(cache, network);
 
-// Start the queue
+        // Start the queue
         mRequestQueue.start();
 
 
@@ -504,6 +506,8 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                             artwork.setContinent(response.getString("Continent"));
                             artwork.setGender(response.getString("Gender"));
                             artwork.setYear(response.getString("Year"));
+
+                            textBox.setText("Title: " + artwork.getTitle() + "\nArtist: " + artwork.getMaker() + "\nYear: " + artwork.getYear());
 
                         } catch (JSONException e) {
                             e.printStackTrace();

@@ -27,17 +27,17 @@
           android:id="@+id/leftButton"
           android:onClick="dislikeWork"
           android:background="#FF4136"
-          android:layout_width="wrap_content"
+          android:layout_width="0dp"
           android:layout_height="match_parent"
           android:layout_weight="1"
           android:minWidth="0dp"
           android:text="" />
 
       <LinearLayout
-          android:layout_width="wrap_content"
+          android:layout_width="0dp"
           android:layout_height="match_parent"
           android:orientation="vertical"
-          android:layout_weight="15.00"
+          android:layout_weight="10.00"
           android:background="@android:color/transparent">
 
       <TextView
@@ -51,8 +51,8 @@
       <ImageView
             android:id="@+id/imageView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="10"
+            android:layout_height="0dp"
+            android:layout_weight="20"
             android:scaleType="fitCenter"/>
 
         <TextView
@@ -72,7 +72,7 @@
           android:id="@+id/rightButton"
           android:onClick="likeWork"
           android:background="#2ECC40"
-          android:layout_width="wrap_content"
+          android:layout_width="0dp"
           android:layout_height="match_parent"
           android:layout_weight="1"
           android:minWidth="0dp"
