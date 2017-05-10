@@ -394,6 +394,7 @@ public class CameraSource {
      * resources of the underlying detector.
      */
     public void stop() {
+
         synchronized (mCameraLock) {
             mFrameProcessor.setActive(false);
             if (mProcessingThread != null) {

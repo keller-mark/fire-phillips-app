@@ -42,8 +42,12 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.Window;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,7 +64,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.CameraSource;
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.CameraSourcePreview;
 import com.google.android.gms.samples.vision.barcodereader.ui.camera.GraphicOverlay;
@@ -103,8 +106,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     // helper objects for detecting taps and pinches.
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
+
     private Work artwork;
     TextView textBox;
+    ImageView workImageView;
+    LinearLayout linearLayout, cameraLayout;
+    FrameLayout middleInfoLayout;
+
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -112,6 +120,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.barcode_capture);
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
@@ -130,8 +139,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             requestCameraPermission();
         }
 
-        gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
+        gestureDetector = new GestureDetector(this, new CaptureGestureListener());
+
 
         Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
                 Snackbar.LENGTH_LONG)
@@ -139,6 +149,10 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
         artwork = new Work();
         textBox = (TextView) findViewById(R.id.textView3);
+        linearLayout = (LinearLayout) findViewById(R.id.viewArtInterface);
+        workImageView = (ImageView) findViewById(R.id.imageView);
+        cameraLayout = (LinearLayout) findViewById(R.id.topLayout);
+        middleInfoLayout = (FrameLayout) findViewById(R.id.middleInfoLayout);
 
     }
 
@@ -173,6 +187,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                     public void onResponse(String response) {
                         // response
                         Log.d("Response", response);
+
+
+
                     }
                 },
                 new Response.ErrorListener()
@@ -200,8 +217,34 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             }
         };
         mRequestQueue.add(postRequest);
+        clearArtInfo(liked);
+
     }
 
+    public void clearArtInfo(boolean liked) {
+        Animation slideDown;
+        if(liked) {
+            slideDown = AnimationUtils.loadAnimation(this, R.anim.anim_slide_out_right);
+        } else {
+            slideDown = AnimationUtils.loadAnimation(this, R.anim.anim_slide_out_left);
+        }
+        slideDown.setAnimationListener(new Animation.AnimationListener(){
+            @Override
+            public void onAnimationStart(Animation arg0) {
+            }
+            @Override
+            public void onAnimationRepeat(Animation arg0) {
+            }
+            @Override
+            public void onAnimationEnd(Animation arg0) {
+                linearLayout.setVisibility(View.INVISIBLE);
+                textBox.setText("");
+                workImageView.setImageResource(android.R.color.transparent);
+            }
+        });
+
+        linearLayout.startAnimation(slideDown);
+    }
 
     /**
      * Handles the requesting of the camera permission.  This includes
@@ -451,18 +494,18 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         }
 
         if (best != null) {
+            /*
             Intent data = new Intent();
             data.putExtra(BarcodeObject, best);
             setResult(CommonStatusCodes.SUCCESS, data);
+            */
             loadArtSwipe(best);
-            return true;
+            // return false;
         }
-        return false;
+        return true;
     }
 
     private void loadArtSwipe (Barcode barcode) {
-        FrameLayout element = (FrameLayout) findViewById(R.id.viewArtInterface);
-        element.setVisibility(View.VISIBLE);
         final String artworkId = barcode.displayValue;
 
 
@@ -490,6 +533,11 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(JSONObject response) {
                         Log.d("phillips", "Response: " + response.toString());
+
+                        linearLayout.setVisibility(View.VISIBLE);
+
+                        middleInfoLayout.setClickable(true);
+
                         try {
                             artwork.setId(response.getInt("ID"));
                             artwork.setPhillipsID(response.getString("PhillipsID"));
@@ -509,11 +557,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
                             textBox.setText("Title: " + artwork.getTitle() + "\nArtist: " + artwork.getMaker() + "\nYear: " + artwork.getYear());
 
+
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                         // show The Image in a ImageView
-                        new DownloadImageTask((ImageView) findViewById(R.id.imageView))
+                        new DownloadImageTask(workImageView)
                                 .execute("http://www.phillipscollection.org/willo/w/size3/" + artwork.getPhillipsID() + "w.jpg");
                     }
                 }, new Response.ErrorListener() {
